@@ -183,7 +183,7 @@ if __name__ == "__main__":
 
     # Phase 2. Dump output
     logger.info("Dumping output files...")
-    dumper = DsplDumper(data_mgr, OUT_DIR)
+    dumper = DsplDumper(data_mgr, "out.zip" )
     dumper()
 
     # Phase 3. Show run stats

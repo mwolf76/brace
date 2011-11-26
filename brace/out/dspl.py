@@ -19,7 +19,7 @@ from brace.ontology import regions_dict
 
 # zipfile
 import zipfile
-
+import shutil
 
 # TODO: following code is *very* raw
 def build_dspl_pollutant_concept_xml(pollutant):
@@ -85,6 +85,7 @@ def build_dspl_pollutant_table_xml(pollutant):
 
     return """
 <table id="%(id)s_table">
+    <column id="region" type="string"/>
     <column id="station" type="string"/>
     <column id="timestamp" type="date"/>
     <column id="quantity" type="float"/>
@@ -175,12 +176,17 @@ class DsplDumper(object):
     def __init__(self, data_mgr, out):
         self._data_mgr = data_mgr
         self._out = out
-        self._tmpdir = "/zip"
+        self._tmpdir = "zip/"
 
     def __call__(self):
         
         if '.' not in self._out:
             self._out = self._out + ".zip"
+
+        # disk cleanup
+        if (os.path.exists(self._tmpdir)):
+            shutil.rmtree(self._tmpdir, True)  # TODO add something for errors
+        os.mkdir(self._tmpdir)
 
         azip = zipfile.ZipFile(self._out, "w" )
 
