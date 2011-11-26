@@ -17,6 +17,9 @@ from brace.opts import opts_mgr
 from brace.ontology import pollutants_dict
 from brace.ontology import regions_dict
 
+# zipfile
+import zipfile
+
 
 # TODO: following code is *very* raw
 def build_dspl_pollutant_concept_xml(pollutant):
@@ -115,7 +118,7 @@ def build_dspl_xml():
     """
 
     return """<?xml version="1.0" encoding="UTF-8"?>
-<dspl targetNamespace="https://www.github.org/mwolf76/brace"
+<dspl
    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
    xmlns="http://schemas.google.com/dspl/2010"
    xmlns:time="http://www.google.com/publicdata/dataset/google/time"
@@ -169,20 +172,29 @@ class DsplDumper(object):
     """
     """
 
-    def __init__(self, data_mgr, outdir):
+    def __init__(self, data_mgr, out):
         self._data_mgr = data_mgr
-        self._outdir = outdir
+        self._out = out
+        self._tmpdir = "/zip"
 
     def __call__(self):
         
+        if '.' not in self._out:
+            self._out = self._out + ".zip"
+
+        azip = zipfile.ZipFile(self._out, "w" )
+
         # write output to file
-        xml = open(os.path.join(self._outdir, "braces.xml"), "wt")
+        fullpath = os.path.join(self._tmpdir, "braces.xml")
+        xml = open(fullpath, "wt")
         xml.write(build_dspl_xml())
         xml.close()
+        azip.write(fullpath)
 
         # write regions csv file
-        logger.debug("Dumping regions csv")
-        regcsv = open(os.path.join(self._outdir, "regions.csv"), "wt")
+        fullpath = os.path.join(self._tmpdir, "regions.csv")
+        regcsv = open(fullpath, "wt")
+        regcsv.write("region, latitude, longitude\n")
         for r in opts_mgr.regions:
             entry = u"%(region)s, %(longitude)s, %(latitude)s\n" % {
                 'region': regions_dict.get_name(r),
@@ -191,14 +203,17 @@ class DsplDumper(object):
             }
             regcsv.write(entry)
         regcsv.close()
+        azip.write(fullpath)
 
         # write pollutants csv files
         for pollutant in opts_mgr.pollutants:
 
             formula = pollutants_dict.get_formula(pollutant)
-            logger.debug("Dumping csv for %s", formula)
+            fullpath = os.path.join(self._tmpdir, "%s.csv" % formula)
 
-            polcsv = open(os.path.join(self._outdir, "%s.csv" % formula), "wt")
+            polcsv = open(fullpath, "wt")
+            polcsv.write("region, station, pollutant, timestamp, quantity\n")
+
             for row in self._data_mgr.filter_by_formula(formula):
 
                 entry = u"%(region)s, %(station)s, %(pollutant)s, %(timestamp)s, %(quantity)s\n" % {
@@ -212,5 +227,14 @@ class DsplDumper(object):
                 polcsv.write(entry)
 
             polcsv.close()
+            azip.write(fullpath)
+
+        # disk cleanup
+        if (os.path.exists(self._tmpdir)):
+            shutil.rmtree(self._tmpdir, True)  # TODO add something for errors
+
+            
+
+
 
 
