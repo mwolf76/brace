@@ -1,7 +1,15 @@
 # -*- coding: utf-8 -*-
 """CSV data representation classes.
 """
+# Logging support
+import logging
+logger = logging.getLogger(__name__)
 
+# Time handling support
+import time
+
+from brace.ontology import regions_dict
+from brace.ontology import pollutants_dict
 
 class DataRow(object):
     """An abstraction on raw data.

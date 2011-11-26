@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """Command line getopt-like options management
 """
+# Logging support
+import logging
+logger = logging.getLogger(__name__)
 
 # Options handling
 import getopt
@@ -22,6 +25,7 @@ class OptionsHandler(object):
         "verbosity=",
         "from=",
         "to=",
+        "year=",
         "pollutant=",
         "region=",
     ]
@@ -41,7 +45,19 @@ class OptionsHandler(object):
 
         for o, a in opts:
 
-            if o == "--from":
+            if o == "--year":
+                year = int(a)
+                if year < DEFAULT_FROM_YEAR:
+                    raise getopt.GetoptError(
+                        "No data available before %d" % DEFAULT_FROM_YEAR)
+
+                self.from_year = year
+                logger.debug("Setting starting year to %d", year)
+
+                self.to_year = year
+                logger.debug("Setting ending year to %d", year)
+
+            elif o == "--from":
                 from_year = int(a)
                 if from_year < DEFAULT_FROM_YEAR:
                     raise getopt.GetoptError(

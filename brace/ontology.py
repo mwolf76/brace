@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """Source data dictionaries for pollutants and italian regions.
 """
+# Logging support
+import logging
+logger = logging.getLogger(__name__)
 
 # localization services
 from gettext import gettext as _

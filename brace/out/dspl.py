@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """DSPL (Dataset Publishing Language) output services
 """
+# Logging support
+import logging
+logger = logging.getLogger(__name__)
 
 
 # TODO: following code is *very* raw

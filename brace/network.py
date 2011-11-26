@@ -1,12 +1,25 @@
 # -*- coding: utf-8 -*-
 """Network I/O services
 """
+# Logging support
+import logging
+logger = logging.getLogger(__name__)
 
 # Temporary files support
 import tempfile
 
 # Network I/O services
 import urllib
+
+# HTML parsing
+from BeautifulSoup import BeautifulSoup
+
+# The URL of the website that provides pollutants data
+URL_PREFIX = "http://www.brace.sinanet.apat.it/zipper"
+
+# Custom modules
+from brace.ontology import regions_dict
+from brace.ontology import pollutants_dict
 
 # Maximum number of attempts to download a single file
 DOWNLOAD_MAX_RETRIES = 6
@@ -66,9 +79,9 @@ def query(region, pollutant, year):
     region_code = regions_dict.get_pk(region)
     region_name = regions_dict.get_name(region)
 
-    pollutant_code = pollutant_dict.get_pk(pollutant)
-    pollutant_formula = pollutant_dict.get_formula(pollutant)
-    pollutant_name = pollutant_dict.get_name(pollutant)
+    pollutant_code = pollutants_dict.get_pk(pollutant)
+    pollutant_formula = pollutants_dict.get_formula(pollutant)
+    pollutant_name = pollutants_dict.get_name(pollutant)
 
     name = '%sdownload/%s_%s_%s.zip' % (
         URL_PREFIX,
@@ -85,7 +98,7 @@ def query(region, pollutant, year):
             'p_anno': year,
     })
 
-    genfile = "%(prefix)sservlet/zipper?%(query)s" % {
+    genfile = "%(prefix)s/servlet/zipper?%(query)s" % {
         'prefix': URL_PREFIX,
         'query': query,
     }
@@ -94,14 +107,21 @@ def query(region, pollutant, year):
     if link is None:
         raise IOError("Could not fetch '%s'." % genfile)
     
-    link.seek(0)
     soup = BeautifulSoup(link)
 
-    res = \
+    location = \
         soup.find('script').contents[0].split('"')[1].\
         replace("../download/", "")
     
     link.close()
 
-    return res
+    archive = download(
+        "%(prefix)s/download/%(location)s" % {
+            'prefix': URL_PREFIX,
+            'location': location })
+
+    if archive is None:
+        raise IOError("Could not fetch '%s'." % genfile)
+
+    return archive
 

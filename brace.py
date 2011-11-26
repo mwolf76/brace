@@ -36,6 +36,11 @@ usage:
 
 options:
 
+  --year=<year>, determines the starting and ending year for the
+  analysis (e.g. 2003). If not specified the earliest year for which
+  data is available is picked. (currently this is 2002). This is
+  equivalent to --from=<year> --to=<year>.
+
   --from=<from_year>, determines the starting year for the analysis
   (e.g. 2003). If not specified the earliest year for which data is
   available is picked. (currently this is 2002).
@@ -71,48 +76,32 @@ arguments:
 # Basic services and utilities
 import os
 import sys
-import csv
-import time
 
 # Zip archives management
 import zipfile
+import shutil
 
-# Temporary files support
-import tempfile
-
-# Network I/O services
-import urllib
-
-# localization services
-from gettext import gettext as _
+# custom modules
+from brace.opts import opts_mgr
+from brace.ontology import pollutants_dict
+from brace.ontology import regions_dict
+from brace.network import download, query
+from brace.csvio import UnicodeReader
+from brace.data import DataRow
 
 # logging
 import logging
 FORMAT = '%(asctime)-15s %(message)s'
 logging.basicConfig(format=FORMAT)
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-# HTML parsing
-from BeautifulSoup import BeautifulSoup
-
-# The URL of the website that provides pollutants data
-URL_PREFIX = "http://www.brace.sinanet.apat.it/zipper/"
-
-DEFAULT_FROM_YEAR = 2002
-DEFAULT_TO_YEAR = 2009
-
-# Maximum number of attempts to download a single file
-DOWNLOAD_MAX_RETRIES = 6
-DOWNLOAD_DELAY_TIME_BETWEEN_ATTEMPTS = 10
+# Temporary storage prefix
+TMP_DIR = "tmp/"
 
 # global data var
 samples = []
-
-import csv
-import codecs
-import cStringIO
-
 
 try:
     opts_mgr(sys.argv[1:])
@@ -131,329 +120,64 @@ if not opts_mgr.regions:
         r[0] for r in regions_dict.all()]
 
 
-class DataRow(object):
-    """An abstraction on raw data.
-    """
-
-    def __init__(self, *args, **kwargs):
-
-        if args:
-            raise ValueError("Unexpected unnamed parameter")
-
-        for (k, v) in kwargs.items():
-
-            if (k == "region"):
-                self._region = unicode(v)
-
-            elif (k == "station"):
-                self._station = unicode(v)
-
-            elif (k == "pollutant"):
-                self._pollutant = pollutants_dict.get_pk(v)
-
-            elif (k == "timestamp"):
-                self._timestamp = time.strptime(v, "%d-%m-%Y %H")
-
-            elif (k == "quantity"):
-                self._quantity = float(v)
-
-            else:
-                raise ValueError(
-                    "Unexpected named parameter: '%s'" % k)
-
-    @property
-    def region(self):
-        """Get the region."""
-        return self._region
-
-    @property
-    def station(self):
-        """Get the station."""
-        return self._station
-
-    @property
-    def pollutant_formula(self):
-        """Get the pollutant formula."""
-        return pollutants_dict.get_formula(self._pollutant)
-
-    @property
-    def pollutant_descr(self):
-        """Get the pollutant description."""
-        return pollutants_dict.get_name(self._pollutant)
-
-    @property
-    def timestamp(self):
-        return self._timestamp
-
-    @property
-    def quantity(self):
-        return self._quantity
-
-    def __repr__(self):
-        """csv representation of a single data row.
-        """
-        ctx = {
-            'region': self.region,
-            'station': self.station,
-            'pollutant': pollutants_dict.get_formula(self._pollutant) + \
-                " (" + pollutants_dict.get_name(self._pollutant) + ")",
-            'timestamp': time.strftime("%Y-%m-%d %H:%M", self.timestamp),
-            'quantity': self.quantity,
-            }
-
-        return "%(region)s, %(station)s, %(pollutant)s, " \
-                    "%(timestamp)s, %(quantity)s" % ctx
-
-
-# TODO: following code is *very* raw
-def build_dspl_pollutant_concept_xml(pollutant):
-    """Builds the xml node for a specific pollutant
-    """
-    return """<concept id="%(id)s">
-      <info>
-        <name>
-          <value>%(name)s</value>
-        </name>
-      </info>
-      <type ref="float"/>
-      <table ref="%(id)s_table" />
-    </concept>
-    """ % {
-        'id': pollutants_dict.get_formula(pollutant),
-        'name': pollutants_dict.get_name(pollutant),
-    }
-
-
-def build_dspl_regions_concept_xml():
-    """Builds the xml node for a specific city in Italy
-    """
-
-    return """<concept id="region" extends="geo:location">
-      <info>
-        <name><value>Regions</value></name>
-        <description>
-          <value>Italian regions</value>
-        </description>
-      </info>
-      <type ref="string"/>
-      <property id="name">
-        <info>
-          <name><value>Name</value></name>
-          <description>
-            <value>The official name of the region</value>
-          </description>
-        </info>
-        <type ref="string" />
-      </property>
-      <table ref="regions_table" />
-    </concept>"""
-
-
-def build_dspl_regions_table_xml():
-    """ Builds the dspl italian regions table
-    """
-
-    return """<table id="regions_table">
-        <column id="region" type="string"/>
-        <column id="latitude" type="float"/>
-        <column id="longitude" type="float"/>
-        <data>
-            <file format="csv" encoding="utf-8">regions.csv</file>
-        </data>
-        </table>"""
-
-
-def build_dspl_pollutant_table_xml(pollutant):
-    """Builds the dspl pollutant table for a given pollutant.
-    """
-
-    return """
-<table id="%(id)s_table">
-    <column id="station" type="string"/>
-    <column id="timestamp" type="timestamp"/>
-    <column id="quantity" type="float"/>
-    <data><file format="csv" encoding="utf-8">%(id)s.csv</file></data>
-</table>""" % {
-        'id': pollutants_dict.get_formula(pollutant),
-    }
-
-
-def build_dspl_tables_xml():
-    """
-    """
-
-    return \
-        build_dspl_regions_table_xml() + \
-        "\n" + \
-        "\n".join(map(build_dspl_pollutant_table_xml, opts_mgr.pollutants))
-
-
-def build_dspl_concepts_xml():
-    """Builds the dspl ontology for pollutants.
-    """
-    return \
-        "\n".join(map(build_dspl_pollutant_concept_xml,
-                      opts_mgr.pollutants)) + \
-        "\n" + \
-        build_dspl_regions_concept_xml()
-
-def build_dspl_xml():
-    """Builds the dspl file.
-    """
-
-    return """<?xml version="1.0" encoding="UTF-8"?>
-<dspl targetNamespace="https://www.github.org/mwolf76/brace"
-   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-   xmlns="http://schemas.google.com/dspl/2010"
-   xmlns:time="http://www.google.com/publicdata/dataset/google/time"
-   xmlns:geo="http://www.google.com/publicdata/dataset/google/geo"
-   xmlns:entity="http://www.google.com/publicdata/dataset/google/entity"
-   xmlns:quantity="http://www.google.com/publicdata/dataset/google/quantity">
-
-  <import namespace="http://www.google.com/publicdata/dataset/google/time"/>
-  <import namespace="http://www.google.com/publicdata/dataset/google/entity"/>
-  <import namespace="http://www.google.com/publicdata/dataset/google/geo"/>
-  <import namespace="http://www.google.com/publicdata/dataset/google/quantity"/>
-
-  <info>
-    <name>
-      <value>Air quality in Italian cities</value>
-    </name>
-    <description>
-      <value>Pollutants measurements in metropolitan areas in Italy</value>
-    </description>
-    <url>
-      <value>https://www.github.org/mwolf76/brace</value>
-    </url>
-    </info>
-
-  <provider>
-    <name>
-      <value>BRACE database</value>
-    </name>
-    <url>
-      <value>http://www.brace.sinanet.apat.it/web/struttura.html</value>
-    </url>
-  </provider>
-
-  <concepts>
-  %(concepts)s
-  </concepts>
-
-  <tables>
-  %(tables)s
-  </tables>
-
-</dspl>
-""" % {
-        'concepts':  build_dspl_concepts_xml(),
-        'tables': build_dspl_tables_xml(),
-}
-
-
 # main body
 if __name__ == "__main__":
 
-    for year in range(opts_mgr.from_year,
-                      1 + opts_mgr.to_year):
+    # Phase 1. Fetch data
+    for pollutant_code in opts_mgr.pollutants:
+        pollutant_formula = pollutants_dict.get_formula(pollutant_code)
+        pollutant_name = pollutants_dict.get_name(pollutant_code)
 
-        for pollutant_code in opts_mgr.pollutants:
+        for region_code in opts_mgr.regions:
+            region_name = regions_dict.get_name(region_code)
 
-            pollutant_formula = pollutants_dict.get_formula(pollutant_code)
-            pollutant_name = pollutants_dict.get_name(pollutant_code)
-
-            for region_code in opts_mgr.regions:
-
-                region_name = regions_dict.get_name(region_code)
-
+            for year in range(opts_mgr.from_year,
+                              1 + opts_mgr.to_year):
                 logger.info(
-                    "Processing year %d, pollutant '%s' (%s), region '%s'",
+                    "Trying to fetch data for year %d, pollutant '%s' (%s), region '%s'",
                     year, pollutant_formula, pollutant_name, region_name)
 
-                name = '%sdownload/%s_%s_%s.zip' % (
-                    URL_PREFIX,
-                    region_name.upper(),
-                    pollutant_formula.upper(),
-                    year
-                )
+                archive = query(region_code, pollutant_code, year)
+                zf = zipfile.ZipFile(archive)
+                for entry in zf.namelist():
 
-                query = urllib.urlencode({
-                    'p_comp': pollutant_code,
-                    'p_comp_name': pollutant_formula.upper(),
-                    'p_reg': region_code,
-                    'p_reg_name': region_name.upper(),
-                    'p_anno': year,
-                })
+                    logger.info("Extracting '%s' ...", entry)
+                    zf.extract(entry, TMP_DIR)
 
-                genfile = "%(prefix)sservlet/zipper?%(query)s" % {
-                    'prefix': URL_PREFIX,
-                    'query': query,
-                }
+                    i = 0
+                    fullpath = os.path.join(TMP_DIR, entry)
 
-                link = download(genfile)
-                if link is None:
-                    logger.warning("Could not fetch '%s'. Skipping...", genfile)
-                    continue  # failed to download
+                    # data appears to be encoded using iso-8859-1,
+                    # it needs to be recoded to UTF-8.
+                    for row in UnicodeReader(open(fullpath),
+                                             encoding="iso-8859-1"):
 
-                link.seek(0)
-                soup = BeautifulSoup(link)
+                        data = {
+                            'region': region_name,
+                            'station': row[0],
+                            'pollutant': row[1] or pollutant_formula,
+                            'timestamp': row[2],
+                            'quantity': row[3]
+                            }
 
-                location = \
-                    soup.find('script').contents[0].split('"')[1].\
-                    replace("../download/", "")
+                        # TODO: we need an efficient data structure for this (NamedTuple?)
+                        row = DataRow(**data)
+                        samples.append(row)
 
-                link.close()
+                        logger.debug("-- " + unicode(row))
 
-                archive = download(
-                    "%(prefix)sdownload/%(location)s" % {
-                        'prefix': URL_PREFIX,
-                        'location': location})
+                        i += 1
 
-                if archive is None:
-                    logger.warning("Could not fetch '%s'. Skipping...", location)
-                    continue  # failed to download
+                    logger.info("Processed %d rows", i)
 
-                # calculate size of the downloaded file, rewind it
-                size = archive.tell()
-                archive.seek(0)
+                archive.close()
 
-                logger.info("Downloaded %d bytes.", size)
+        # disk cleanup
+        if (os.exists(TMP_DIR)):
+            shutil.rmtree(TMP_DIR, True)  # TODO add something for errors
 
-                if size:
-                    zf = zipfile.ZipFile(archive)
-                    for entry in zf.namelist():
-
-                        logger.info("Extracting '%s' ...", entry)
-                        zf.extract(entry)
-
-                        i = 0
-
-                        # data appears to be encoded using iso-8859-1,
-                        # it needs to be recoded to UTF-8.
-                        for row in UnicodeReader(open(entry),
-                                                 encoding="iso-8859-1"):
-
-                            data = {
-                                'region': region_name,
-                                'station': row[0],
-                                'pollutant': row[1] or pollutant_formula,
-                                'timestamp': row[2],
-                                'quantity': row[3]
-                                }
-
-                            row = DataRow(**data)
-                            samples.append(row)
-                            logger.debug("-- " + unicode(row))
-
-                            i += 1
-
-                        logger.info("Processed %d rows", i)
-                        os.remove(entry)
-
-                    archive.close()
-
-                else:
-                    logger.warning("Data unavailable.")
+    # Phase 2. Dump output
+    
 
     # write output to file
     logger.debug("Dumping xml file")

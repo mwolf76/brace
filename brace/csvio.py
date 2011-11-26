@@ -2,6 +2,15 @@
 """brace.csv - unicode-related csv helper classes (from Python 2.7 docs)
 """
 
+# Logging support
+import logging
+logger = logging.getLogger(__name__)
+
+# csv and recoding support
+import csv
+import codecs
+import cStringIO
+
 class UTF8Recoder:
     """Iterator that reads an encoded stream and reencodes the input to UTF-8.
     """
