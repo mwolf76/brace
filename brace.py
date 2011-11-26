@@ -7,10 +7,8 @@
 # (at your option) any later version.
 
 # TODO:
-# cleanup of download files
-# better scaling (use named tuples?)
-# refactoring in several modules
 # better abstraction
+# output by plugins
 # ... more ...
 
 __author__ = "Marco Pensallorto, Davide Setti"
@@ -103,6 +101,7 @@ logger.setLevel(logging.INFO)
 
 # Temporary storage prefix
 TMP_DIR = "tmp/"
+OUT_DIR = "out/"
 
 try:
     opts_mgr(sys.argv[1:])
@@ -183,11 +182,12 @@ if __name__ == "__main__":
             shutil.rmtree(TMP_DIR, True)  # TODO add something for errors
 
     # Phase 2. Dump output
-    dumper = DsplDumper(data_mgr, "braces.xml")
+    logger.info("Dumping output files...")
+    dumper = DsplDumper(data_mgr, OUT_DIR)
     dumper()
 
     # Phase 3. Show run stats
-    logger.info("Processed %d rows in %s", total_rows, "%d:%02d:%02d.%03d" % \
+    logger.info("Done. Processed %d rows in %s", total_rows, "%d:%02d:%02d.%03d" % \
         reduce(lambda ll,b : divmod(ll[0],b) + ll[1:], [(time() - start, ), 1, 60, 60]))
     
     
