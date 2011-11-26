@@ -83,7 +83,7 @@ def build_dspl_pollutant_table_xml(pollutant):
     return """
 <table id="%(id)s_table">
     <column id="station" type="string"/>
-    <column id="timestamp" type="timestamp"/>
+    <column id="timestamp" type="date"/>
     <column id="quantity" type="float"/>
     <data><file format="csv" encoding="utf-8">%(id)s.csv</file></data>
 </table>""" % {
@@ -169,22 +169,20 @@ class DsplDumper(object):
     """
     """
 
-    def __init__(self, data_mgr, outname):
+    def __init__(self, data_mgr, outdir):
         self._data_mgr = data_mgr
-        self._outname = outname
+        self._outdir = outdir
 
     def __call__(self):
         
         # write output to file
-        logger.info("Dumping DSPL files...")
-
-        xml = open(self._filename, "wt")
+        xml = open(os.path.join(self._outdir, "braces.xml"), "wt")
         xml.write(build_dspl_xml())
         xml.close()
 
         # write regions csv file
         logger.debug("Dumping regions csv")
-        regcsv = open("regions.csv", "wt")
+        regcsv = open(os.path.join(self._outdir, "regions.csv"), "wt")
         for r in opts_mgr.regions:
             entry = u"%(region)s, %(longitude)s, %(latitude)s\n" % {
                 'region': regions_dict.get_name(r),
@@ -200,7 +198,7 @@ class DsplDumper(object):
             formula = pollutants_dict.get_formula(pollutant)
             logger.debug("Dumping csv for %s", formula)
 
-            polcsv = open("%s.csv" % formula, "wt")
+            polcsv = open(os.path.join(self._outdir, "%s.csv" % formula), "wt")
             for row in self._data_mgr.filter_by_formula(formula):
 
                 entry = u"%(region)s, %(station)s, %(pollutant)s, %(timestamp)s, %(quantity)s\n" % {
