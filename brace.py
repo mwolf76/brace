@@ -72,10 +72,13 @@ arguments:
 
   filename, the filename to write the output to.
 """
-
 # Basic services and utilities
 import os
 import sys
+
+# Time services
+from time import time
+start = time()
 
 # Zip archives management
 import zipfile
@@ -87,21 +90,19 @@ from brace.ontology import pollutants_dict
 from brace.ontology import regions_dict
 from brace.network import download, query
 from brace.csvio import UnicodeReader
-from brace.data import DataRow
+from brace.data import DataRow, DataManager
+from brace.out.dspl import DsplDumper
 
 # logging
 import logging
 FORMAT = '%(asctime)-15s %(message)s'
 logging.basicConfig(format=FORMAT)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("brace")
 logger.setLevel(logging.INFO)
 
 # Temporary storage prefix
 TMP_DIR = "tmp/"
-
-# global data var
-samples = []
 
 try:
     opts_mgr(sys.argv[1:])
@@ -123,7 +124,10 @@ if not opts_mgr.regions:
 # main body
 if __name__ == "__main__":
 
+    data_mgr = DataManager()
+
     # Phase 1. Fetch data
+    total_rows = 0
     for pollutant_code in opts_mgr.pollutants:
         pollutant_formula = pollutants_dict.get_formula(pollutant_code)
         pollutant_name = pollutants_dict.get_name(pollutant_code)
@@ -138,74 +142,52 @@ if __name__ == "__main__":
                     year, pollutant_formula, pollutant_name, region_name)
 
                 archive = query(region_code, pollutant_code, year)
-                zf = zipfile.ZipFile(archive)
-                for entry in zf.namelist():
+                try:
+                    zf = zipfile.ZipFile(archive)
+                    for entry in zf.namelist():
 
-                    logger.info("Extracting '%s' ...", entry)
-                    zf.extract(entry, TMP_DIR)
+                        logger.info("Extracting '%s' ...", entry)
+                        zf.extract(entry, TMP_DIR)
 
-                    i = 0
-                    fullpath = os.path.join(TMP_DIR, entry)
+                        i = 0
+                        fullpath = os.path.join(TMP_DIR, entry)
 
-                    # data appears to be encoded using iso-8859-1,
-                    # it needs to be recoded to UTF-8.
-                    for row in UnicodeReader(open(fullpath),
-                                             encoding="iso-8859-1"):
+                        # data appears to be encoded using iso-8859-1,
+                        # it needs to be recoded to UTF-8.
+                        for row in UnicodeReader(open(fullpath),
+                                                 encoding="iso-8859-1"):
 
-                        data = {
-                            'region': region_name,
-                            'station': row[0],
-                            'pollutant': row[1] or pollutant_formula,
-                            'timestamp': row[2],
-                            'quantity': row[3]
-                            }
+                            data = {
+                                'region': region_name,
+                                'station': row[0],
+                                'pollutant': row[1] or pollutant_formula,
+                                'timestamp': row[2],
+                                'quantity': row[3]
+                                }
 
-                        # TODO: we need an efficient data structure for this (NamedTuple?)
-                        row = DataRow(**data)
-                        samples.append(row)
+                            data_mgr.append(**data)
 
-                        logger.debug("-- " + unicode(row))
+                            logger.debug("-- " + unicode(row))
 
-                        i += 1
+                            i += 1; total_rows += 1
 
-                    logger.info("Processed %d rows", i)
+                        logger.info("Processed %d rows", i)
 
+                except Exception, e:  # TODO which expception
+                    logger.warning("Data unavailable.")
+                    
                 archive.close()
 
         # disk cleanup
-        if (os.exists(TMP_DIR)):
+        if (os.path.exists(TMP_DIR)):
             shutil.rmtree(TMP_DIR, True)  # TODO add something for errors
 
     # Phase 2. Dump output
+    dumper = DsplDumper(data_mgr, "braces.xml")
+    dumper()
+
+    # Phase 3. Show run stats
+    logger.info("Processed %d rows in %s", total_rows, "%d:%02d:%02d.%03d" % \
+        reduce(lambda ll,b : divmod(ll[0],b) + ll[1:], [(time() - start, ), 1, 60, 60]))
     
-
-    # write output to file
-    logger.debug("Dumping xml file")
-    xml = open("brace.xml", "wt")
-    xml.write(build_dspl_xml(), encoding='utf-8')
-    xml.close()
-
-    # write regions csv file
-    logger.debug("Dumping regions csv")
-    regcsv = open("regions.csv", "wt")
-    for r in opts_mgr.regions:
-        entry = "%(region)s, %(longitude)s, %(latitude)s\n" % {
-            'region': regions_dict.get_name(r),
-            'longitude': regions_dict.get_longitude(r),
-            'latitude': regions_dict.get_latitude(r),
-        }
-        regcsv.write(entry, encoding='utf-8')
-
-    regcsv.close()
-
-    # write pollutants csv files
-    for pollutant in opts_mgr.pollutants:
-
-        formula = pollutants_dict.get_formula(pollutant)
-        logger.debug("Dumping csv for %s", formula)
-
-        polcsv = open("%s.csv" % formula, "wt")
-        for row in samples:
-            if row.pollutant_formula == formula:
-                polcsv.write(unicode(row) + "\n", encoding='utf-8')
-        polcsv.close()
+    

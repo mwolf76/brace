@@ -1,9 +1,21 @@
 # -*- coding: utf-8 -*-
 """DSPL (Dataset Publishing Language) output services
 """
+
+# os services
+import os
+
+# time services
+import time
+
 # Logging support
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("brace")
+
+# custom modules
+from brace.opts import opts_mgr
+from brace.ontology import pollutants_dict
+from brace.ontology import regions_dict
 
 
 # TODO: following code is *very* raw
@@ -150,5 +162,57 @@ def build_dspl_xml():
         'concepts':  build_dspl_concepts_xml(),
         'tables': build_dspl_tables_xml(),
 }
+
+
+
+class DsplDumper(object):
+    """
+    """
+
+    def __init__(self, data_mgr, outname):
+        self._data_mgr = data_mgr
+        self._outname = outname
+
+    def __call__(self):
+        
+        # write output to file
+        logger.info("Dumping DSPL files...")
+
+        xml = open(self._filename, "wt")
+        xml.write(build_dspl_xml())
+        xml.close()
+
+        # write regions csv file
+        logger.debug("Dumping regions csv")
+        regcsv = open("regions.csv", "wt")
+        for r in opts_mgr.regions:
+            entry = u"%(region)s, %(longitude)s, %(latitude)s\n" % {
+                'region': regions_dict.get_name(r),
+                'latitude': regions_dict.get_latitude(r),
+                'longitude': regions_dict.get_longitude(r),
+            }
+            regcsv.write(entry)
+        regcsv.close()
+
+        # write pollutants csv files
+        for pollutant in opts_mgr.pollutants:
+
+            formula = pollutants_dict.get_formula(pollutant)
+            logger.debug("Dumping csv for %s", formula)
+
+            polcsv = open("%s.csv" % formula, "wt")
+            for row in self._data_mgr.filter_by_formula(formula):
+
+                entry = u"%(region)s, %(station)s, %(pollutant)s, %(timestamp)s, %(quantity)s\n" % {
+                    'region': row.region,
+                    'station': row.station,
+                    'pollutant': pollutants_dict.get_formula(row.pollutant) + \
+                        " (" + pollutants_dict.get_name(row.pollutant) + ")",
+                    'timestamp': time.strftime("%Y-%m-%d %H:%M", row.timestamp),
+                    'quantity': row.quantity,
+                }
+                polcsv.write(entry)
+
+            polcsv.close()
 
 

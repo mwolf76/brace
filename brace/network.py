@@ -3,7 +3,7 @@
 """
 # Logging support
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("brace")
 
 # Temporary files support
 import tempfile

@@ -4,7 +4,7 @@
 
 # Logging support
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("brace")
 
 # csv and recoding support
 import csv

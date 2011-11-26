@@ -3,7 +3,10 @@
 """
 # Logging support
 import logging
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("brace")
+
+# Standard collections
+import collections
 
 # Time handling support
 import time
@@ -11,76 +14,75 @@ import time
 from brace.ontology import regions_dict
 from brace.ontology import pollutants_dict
 
-class DataRow(object):
-    """An abstraction on raw data.
+# named tuple for lighteweight data storage
+DataRow = collections.namedtuple('DataRow', 
+                 'region, station, pollutant, timestamp, quantity')
+
+class DataManager(object):
+    """DataManager class
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self):        
+        self._data = []
+        
+    def append(self, *args, **kwargs):
 
+        """Data validation and normalization
+        """
         if args:
             raise ValueError("Unexpected unnamed parameter")
+
+        cleaned = {}
 
         for (k, v) in kwargs.items():
 
             if (k == "region"):
-                self._region = unicode(v)
+                cleaned["region"] = unicode(v)
 
             elif (k == "station"):
-                self._station = unicode(v)
+                cleaned["station"] = unicode(v)
 
             elif (k == "pollutant"):
-                self._pollutant = pollutants_dict.get_pk(v)
+                cleaned["pollutant"] = pollutants_dict.get_pk(v)
 
             elif (k == "timestamp"):
-                self._timestamp = time.strptime(v, "%d-%m-%Y %H")
+                cleaned["timestamp"] = time.strptime(v, "%d-%m-%Y %H")
 
             elif (k == "quantity"):
-                self._quantity = float(v)
+                cleaned["quantity"] = float(v)
 
             else:
                 raise ValueError(
                     "Unexpected named parameter: '%s'" % k)
+            
+        # normalized, clened up data
+        self._data.append(DataRow(**cleaned))
 
-    @property
-    def region(self):
-        """Get the region."""
-        return self._region
+    def filter_by_formula(self, formula):
+        
+        for row in self._data:
+            if pollutants_dict.get_formula(row.pollutant) == formula:
+                yield row
 
-    @property
-    def station(self):
-        """Get the station."""
-        return self._station
+# class DataRow(object):
+#     """An abstraction on raw data.
+#     """
 
-    @property
-    def pollutant_formula(self):
-        """Get the pollutant formula."""
-        return pollutants_dict.get_formula(self._pollutant)
+#     def __init__(self, *args, **kwargs):
 
-    @property
-    def pollutant_descr(self):
-        """Get the pollutant description."""
-        return pollutants_dict.get_name(self._pollutant)
 
-    @property
-    def timestamp(self):
-        return self._timestamp
+#     def __repr__(self):
+#         """csv representation of a single data row.
+#         """
+#         ctx = {
+#             'region': self.region,
+#             'station': self.station,
+#             'pollutant': pollutants_dict.get_formula(self._data.pollutant) + \
+#                 " (" + pollutants_dict.get_name(self._data.pollutant) + ")",
+#             'timestamp': time.strftime("%Y-%m-%d %H:%M", self.timestamp),
+#             'quantity': self.quantity,
+#             }
 
-    @property
-    def quantity(self):
-        return self._quantity
-
-    def __repr__(self):
-        """csv representation of a single data row.
-        """
-        ctx = {
-            'region': self.region,
-            'station': self.station,
-            'pollutant': pollutants_dict.get_formula(self._pollutant) + \
-                " (" + pollutants_dict.get_name(self._pollutant) + ")",
-            'timestamp': time.strftime("%Y-%m-%d %H:%M", self.timestamp),
-            'quantity': self.quantity,
-            }
-
-        return "%(region)s, %(station)s, %(pollutant)s, " \
-                    "%(timestamp)s, %(quantity)s" % ctx
+#         return "%(region)s, %(station)s, %(pollutant)s, " \
+#                     "%(timestamp)s, %(quantity)s" % ctx
 
