@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """brace.csv - unicode-related csv helper classes (from Python 2.7 docs)
 """
 

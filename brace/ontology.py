@@ -1,5 +1,10 @@
+# -*- coding: utf-8 -*-
 """Source data dictionaries for pollutants and italian regions.
 """
+
+# localization services
+from gettext import gettext as _
+
 
 class PollutantsDictionary(object):
     """Provides loookup services for pollutants. All of the get_xxx

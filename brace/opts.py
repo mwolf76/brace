@@ -1,7 +1,16 @@
+# -*- coding: utf-8 -*-
 """Command line getopt-like options management
 """
+
 # Options handling
 import getopt
+
+# custom modules
+from brace.ontology import pollutants_dict
+from brace.ontology import regions_dict
+
+DEFAULT_FROM_YEAR = 2002
+DEFAULT_TO_YEAR = 2009
 
 
 class OptionsHandler(object):

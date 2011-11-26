@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """CSV data representation classes.
 """
 

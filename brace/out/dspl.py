@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """DSPL (Dataset Publishing Language) output services
 """
 
