@@ -218,15 +218,15 @@ class DsplDumper(object):
             fullpath = os.path.join(self._tmpdir, "%s.csv" % formula)
 
             polcsv = open(fullpath, "wt")
-            polcsv.write("region, station, pollutant, timestamp, quantity\n")
+            polcsv.write("region, station, timestamp, quantity\n")
 
             for row in self._data_mgr.filter_by_formula(formula):
 
-                entry = u"%(region)s, %(station)s, %(pollutant)s, %(timestamp)s, %(quantity)s\n" % {
+                entry = u"%(region)s, %(station)s, %(timestamp)s, %(quantity)s\n" % {
                     'region': row.region,
                     'station': row.station,
-                    'pollutant': pollutants_dict.get_formula(row.pollutant) + \
-                        " (" + pollutants_dict.get_name(row.pollutant) + ")",
+                    # 'pollutant': pollutants_dict.get_formula(row.pollutant) + \
+                    #     " (" + pollutants_dict.get_name(row.pollutant) + ")",
                     'timestamp': time.strftime("%Y-%m-%d %H:%M", row.timestamp),
                     'quantity': row.quantity,
                 }

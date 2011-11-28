@@ -1,4 +1,4 @@
-iData per la qualità dell'aria nelle città italiane
+brace per la qualità dell'aria nelle città italiane
 ===================================================
 
 - Elaborazione dei dati ISPRA
@@ -7,12 +7,12 @@ La prima fase del processo consiste nell'elaborazione dei dati
 pubblici sulla qualità dell'aria nelle principali città sul territorio
 italiano, messi a disposizione dall'ISPRA (Istituto Superiore per la
 Protezione e la Ricerca Ambientale). Per poter effettuare
-l'elaborazione è stato realizzato un tool a riga di comando, iData.
+l'elaborazione è stato realizzato un tool a riga di comando, brace.
 
 Il tool, rilasciato sotto licenza GPL, è presente sulla piattaforma di
 Social Coding github all'indirizzo:
 
-https://github.com/mwolf76/iData
+https://github.com/mwolf76/brace
 
 Chiunque fosse interessato può analizzare, modificare e ripubblicare
 il codice sorgente, adattandolo a esigenze sue o di terzi.
@@ -21,16 +21,16 @@ Il tool è dotato di documentazione in linea, richiamabile mediante
 l'opzione --help.  Digitando il seguente comando al prompt della riga
 di comando:
 
-$ iData.py --help
+$ brace.py --help
 
 Verrà visualizzato il seguente messaggio:
 
 --------------------------------------------------------------------------------
-iData.py - a tool for public data knowledge sharing.
+brace.py - a tool for public data knowledge sharing.
 
 usage:
 
-    iData.py [ --from=<from_year> ][ --to=<to_year> ]
+    brace.py [ --from=<from_year> ][ --to=<to_year> ]
              --region=<region> --pollutant=<formula>
              [ --help ] [ --verbosity=<level> ]
              filename
@@ -79,7 +79,7 @@ Language) costituisce un requisito necessario per la visualizzazione
 sulla piattaforma Google Public Data Explorer. È tuttavia possibile
 utlizzare altri formati
 
-$ ./iData.py --from=2005 --to=2008 --region=Lombardia --pollutant=NO2 --format=DSPL 
+$ ./brace.py --from=2005 --to=2008 --region=Lombardia --pollutant=NO2 --format=DSPL 
 
 - Upload dei dati su Google Public Data Explorer
 
