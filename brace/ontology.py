@@ -40,7 +40,8 @@ class PollutantsDictionary(object):
             if ident in (pk, formula.lower(), name.lower()):
                 return (pk, formula, name)
 
-        raise KeyError("key '%s' not found" % ident)
+        raise KeyError (
+            "%s is not a known pollutant." % ident)
 
     def get_pk(self, ident):
         """Given a chemical identifier, returns its pk in the
@@ -115,7 +116,8 @@ class ItalianRegionsDictionary(object):
             if ident in (pk, name.lower()):
                 return (pk, name, latitude, longitude)
 
-        raise KeyError("key '%s' not found" % ident)
+        raise KeyError(
+            "'%s' is not an italian region" % ident)
 
     def get_pk(self, ident):
 
