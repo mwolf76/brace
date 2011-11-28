@@ -183,7 +183,7 @@ class OptionsManager(object):
                 logger.debug("Setting verbosity level to %s",
                              ["ERROR", "WARNING", "INFO", "DEBUG"][level])
 
-            elif o = "--keep":
+            elif o == "--keep":
                 self.keep = True
 
             elif o == "--help":
