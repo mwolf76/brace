@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """Command line getopt-like options management
 """
+
+# System services
+import sys
+
 # Logging support
 import logging
 logger = logging.getLogger("brace")
@@ -14,7 +18,6 @@ from brace.ontology import regions_dict
 
 DEFAULT_FROM_YEAR = 2002
 DEFAULT_TO_YEAR = 2009
-
 
 usage = """
 brace.py - a tool for public data knowledge sharing.
