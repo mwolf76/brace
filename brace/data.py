@@ -24,6 +24,7 @@ class DataManager(object):
 
     def __init__(self):        
         self._data = []
+        self._stations = {}
         
     def append(self, *args, **kwargs):
 
@@ -56,13 +57,24 @@ class DataManager(object):
                     "Unexpected named parameter: '%s'" % k)
             
         # normalized, clened up data
-        self._data.append(DataRow(**cleaned))
+        row = DataRow(**cleaned)
+        self._data.append(row)
+
+        station, region = cleaned["station"], cleaned["region"]  # aliases 
+        if not station in self._stations:
+            self._stations[station] = region
+        else: 
+            assert self._stations[station] == region  # ensure integrity
 
     def filter_by_formula(self, formula):
         
         for row in self._data:
             if pollutants_dict.get_formula(row.pollutant) == formula:
                 yield row
+
+    @property
+    def stations(self):
+        return self._stations.iteritems()
 
 # class DataRow(object):
 #     """An abstraction on raw data.

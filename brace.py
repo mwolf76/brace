@@ -127,8 +127,9 @@ if __name__ == "__main__":
                 archive.close()
 
         # disk cleanup
-        if (os.path.exists(TMP_DIR)):
-            shutil.rmtree(TMP_DIR, True)  # TODO add something for errors
+        if (not opts_mgr.keep):
+            if (os.path.exists(TMP_DIR)):
+                shutil.rmtree(TMP_DIR, True)  # TODO add something for errors
 
     # Phase 2. Dump output
     logger.info("Dumping output files...")
