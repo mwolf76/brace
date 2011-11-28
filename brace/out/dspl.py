@@ -75,15 +75,15 @@ def build_dspl_stations_concept_xml():
     return """<!-- Concept for stations (geo) -->
 <concept id="station" extends="geo:location">
       <info>
-        <name>
-            <value>Measurement station</value>
-        </name>
-        <description>
-          <value>Measurement station</value>
-        </description>
+          <name>
+              <value>Measurement station</value>
+          </name>
+          <description>
+              <value>Measurement station</value>
+          </description>
       </info>
-     <property concept="region" isParent="true" />
-     <table ref="stations_table" />
+      <property concept="region" isParent="true" />
+      <table ref="stations_table" />
  </concept>
 """
 
@@ -127,7 +127,7 @@ def build_dspl_pollutant_slice_table_xml(pollutant):
 <table id="%(formula)s_slice_table">
     <column id="region" type="string"/>
     <column id="station" type="string"/>
-    <column id="timestamp" type="date" format="yyyy-mm-dd HH:MM:ss"/>
+    <column id="time:day" type="date" format="yyyy-mm-dd"/>
     <column id="quantity" type="float"/>
     <data><file format="csv" encoding="utf-8">%(formula)s.csv</file></data>
 </table>
