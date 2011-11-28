@@ -8,6 +8,7 @@ logger = logging.getLogger("brace")
 # localization services
 from gettext import gettext as _
 
+# TODO: improve these classes for performance
 
 class PollutantsDictionary(object):
     """Provides loookup services for pollutants. All of the get_xxx

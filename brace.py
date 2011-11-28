@@ -9,6 +9,7 @@
 # TODO:
 # better abstraction
 # output by plugins
+# code cleanup
 # ... more ...
 
 __author__ = "Marco Pensallorto"
@@ -135,7 +136,7 @@ if __name__ == "__main__":
     dumper()
 
     # Phase 3. Show run stats
-    logger.info("Done. Processed %d rows in %s", total_rows, "%d:%02d:%02d.%03d" % \
+    logger.info("Done. Processed %d rows in %s", total_rows, "%d:%02d:%02d.%03d" %
         reduce(lambda ll,b : divmod(ll[0],b) + ll[1:], [(time() - start, ), 1, 60, 60]))
     
     
