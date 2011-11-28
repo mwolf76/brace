@@ -93,6 +93,7 @@ class OptionsManager(object):
 
     long_options = [
         "help",
+        "keep",
         "verbosity=",
         "from=",
         "to=",
@@ -105,6 +106,7 @@ class OptionsManager(object):
         self.from_year = DEFAULT_FROM_YEAR
         self.to_year = DEFAULT_TO_YEAR
         self.verbosity = 1  # Normal
+        self.keep = False
 
         self.regions = []
         self.pollutants = []
@@ -180,6 +182,9 @@ class OptionsManager(object):
 
                 logger.debug("Setting verbosity level to %s",
                              ["ERROR", "WARNING", "INFO", "DEBUG"][level])
+
+            elif o = "--keep":
+                self.keep = True
 
             elif o == "--help":
                 print usage
