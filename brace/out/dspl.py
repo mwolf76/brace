@@ -110,7 +110,7 @@ def build_dspl_stations_table_xml():
 
     return """<!-- Table for stations. -->
 <table id="stations_table">
-    <column id="location" type="string"/>
+    <column id="station" type="string"/>
     <column id="region" type="string" />
     <data>
         <file format="csv" encoding="utf-8">stations.csv</file>
@@ -127,8 +127,8 @@ def build_dspl_pollutant_slice_table_xml(pollutant):
 <table id="%(formula)s_slice_table">
     <column id="region" type="string"/>
     <column id="station" type="string"/>
-    <column id="time:day" type="date" format="yyyy-mm-dd"/>
-    <column id="quantity" type="float"/>
+    <column id="day" type="date" format="yyyy-MM-dd"/>
+    <column id="%(formula)s" type="float"/>
     <data><file format="csv" encoding="utf-8">%(formula)s.csv</file></data>
 </table>
 """ % {
@@ -168,6 +168,7 @@ def build_dspl_pollutant_slice_xml(pollutant):
     return """<!-- Slice for %(formula)s (%(name)s). -->
 <slice id="%(formula)s_slice">
     <dimension concept="region"/>
+    <dimension concept="station"/>
     <dimension concept="time:day"/>
     <metric concept="%(formula)s"/>
     <table ref="%(formula)s_slice_table"/>
@@ -242,7 +243,7 @@ def build_dspl_xml():
 </dspl>
 """ % {
         'now': datetime.datetime.now().strftime("%a, %d %b %Y - %H:%M"),
-        'concepts':  build_dspl_concepts_xml(),
+        'concepts': build_dspl_concepts_xml(),
         'tables': build_dspl_tables_xml(),
         'slices': build_dspl_slices_xml(),
 }
@@ -262,54 +263,48 @@ class DsplDumper(object):
         """Yields aggregate data for this output plugin.
         """
         fk = pollutants_dict.get_pk(formula)
-        
+
         curr_reg = None
         curr_stat = None
         curr_day = None
         res = 0.0  # aggregate measurement (max)
-        
+
         for row in self._data_mgr.data:
             if row.pollutant == fk:
                 (region, station, pollutant, timestamp, quantity) = row
 
-                # if dealing with another region, yield result and reset
-                if (curr_reg is not None and curr_reg != region):
-                    yield (region, station, pollutant, day, res)
-                    curr_reg = None
-                    curr_stat = None
-                    curr_day = None
+                # day as a 3-tuple
+                day = (timestamp.tm_year, timestamp.tm_mon, timestamp.tm_mday)
+
+                # if dealing with another region, station or day,
+                # yield result and reset the result
+                if (curr_reg != region) or (curr_stat != station) or \
+                        (curr_day != day):
+
+                    # remeber last yield
+                    (last_region, last_station, last_day) = \
+                        (region, station, day)
+
+                    yield (region, station, day, res)
                     res = 0.0
+
+                # update
                 curr_reg = region
-
-                # if dealing with another station, yield result and reset
-                if (curr_stat is not None and curr_stat != stat):
-                    yield (region, station, pollutant, day, res)
-                    curr_reg = None
-                    curr_stat = None
-                    curr_day = None
-                    res = 0.0
                 curr_stat = station
-
-                day = timestamp.date()  # discard time info
-                # if dealing with another date, yield result and reset
-                if (curr_day is not None and curr_day != day):
-                    yield (region, station, pollutant, day, res)
-                    curr_reg = None
-                    curr_stat = None
-                    curr_day = None
-                    res = 0.0
                 curr_day = day
 
                 # update aggregate measurement
                 res = max(res, quantity)
-            
-        # any missing data?
-        if region is not None:
-            yield (region, station, pollutant, day, res)
-            
+
+        # yield last row if necessary
+        if (region != last_region) or \
+                (station != last_station) or \
+                (day != last_day):
+
+            yield (region, station, day, res)
 
     def __call__(self):
-        
+
         if '.' not in self._out:
             self._out = self._out + ".zip"
 
@@ -344,10 +339,10 @@ class DsplDumper(object):
         # write stations csv file
         fullpath = os.path.join(self._tmpdir, "stations.csv")
         stscsv = open(fullpath, "wt")
-        stscsv.write("location, region\n")
-        for (location, region) in self._data_mgr.stations:
-            entry = u"%(location)s, %(region)s\n" % {
-                'location': location,
+        stscsv.write("station, region\n")
+        for (station, region) in self._data_mgr.stations:
+            entry = u"%(station)s, %(region)s\n" % {
+                'station': station,
                 'region': region,
             }
             stscsv.write(entry)
@@ -361,7 +356,7 @@ class DsplDumper(object):
             fullpath = os.path.join(self._tmpdir, "%s.csv" % formula)
 
             polcsv = open(fullpath, "wt")
-            polcsv.write("region, station, day, quantity\n")
+            polcsv.write("region, station, day, %s\n" % formula)
 
             # generated aggregate data
             for (region, station, day, quantity) in self._yield(formula):
@@ -369,7 +364,7 @@ class DsplDumper(object):
                 entry = u"%(region)s, %(station)s, %(day)s, %(quantity)s\n" % {
                     'region': region,
                     'station': station,
-                    'day': time.strftime("%Y-%m-%d", day),
+                    'day': time.strftime("%Y-%m-%d", day +(0, ) * 6),
                     'quantity': quantity,
                 }
                 polcsv.write(entry)
@@ -380,9 +375,3 @@ class DsplDumper(object):
         # disk cleanup
         if (os.path.exists(self._tmpdir)):
             shutil.rmtree(self._tmpdir, True)  # TODO add something for errors
-
-            
-
-
-
-

@@ -86,11 +86,12 @@ if __name__ == "__main__":
             for year in range(opts_mgr.from_year,
                               1 + opts_mgr.to_year):
                 logger.info(
-                    "Trying to fetch data for year %d, pollutant '%s' (%s), region '%s'",
-                    year, pollutant_formula, pollutant_name, region_name)
+                    "Trying to fetch data for year %d, pollutant '%s' (%s), "
+                    "region '%s'", year, pollutant_formula, pollutant_name,
+                    region_name)
 
                 archive = query(region_code, pollutant_code, year)
-                seen = set() # tmp
+                # seen = set() # tmp
                 try:
                     zf = zipfile.ZipFile(archive)
                     for entry in zf.namelist():
@@ -117,9 +118,9 @@ if __name__ == "__main__":
                             data_mgr.append(**data)
 
                             logger.debug("-- " + unicode(row))
-                            if row[0] not in seen:
-                                print row[0]
-                                seen.add(row[0])
+                            # if row[0] not in seen:
+                            #     print row[0]
+                            #     seen.add(row[0])
 
                             i += 1; total_rows += 1
 
@@ -127,7 +128,7 @@ if __name__ == "__main__":
 
                 except Exception, e:  # TODO which expception
                     logger.warning("Data unavailable.")
-                    
+
                 archive.close()
 
         # disk cleanup
@@ -141,7 +142,7 @@ if __name__ == "__main__":
     dumper()
 
     # Phase 3. Show run stats
-    logger.info("Done. Processed %d rows in %s", total_rows, "%d:%02d:%02d.%03d" %
-        reduce(lambda ll,b : divmod(ll[0],b) + ll[1:], [(time() - start, ), 1, 60, 60]))
-    
-    
+    logger.info(
+        "Done. Processed %d rows in %s", total_rows, "%d:%02d:%02d.%03d" % \
+            reduce(lambda ll,b : divmod(ll[0],b) + ll[1:],
+                   [(time() - start, ), 1, 60, 60]))

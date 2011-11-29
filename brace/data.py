@@ -15,17 +15,17 @@ from brace.ontology import regions_dict
 from brace.ontology import pollutants_dict
 
 # named tuple for lighteweight data storage
-DataRow = collections.namedtuple('DataRow', 
+DataRow = collections.namedtuple('DataRow',
     'region, station, pollutant, timestamp, quantity')
 
 class DataManager(object):
     """DataManager class
     """
 
-    def __init__(self):        
+    def __init__(self):
         self._data = []
         self._stations = {}
-        
+
     def append(self, *args, **kwargs):
 
         """Data validation and normalization
@@ -55,19 +55,19 @@ class DataManager(object):
             else:
                 raise ValueError(
                     "Unexpected named parameter: '%s'" % k)
-            
+
         # normalized, cleaned up data
         row = DataRow(**cleaned)
         self._data.append(row)
 
-        station, region = cleaned["station"], cleaned["region"]  # aliases 
+        station, region = cleaned["station"], cleaned["region"]  # aliases
         if not station in self._stations:
             self._stations[station] = region
-        else: 
+        else:
             assert self._stations[station] == region  # ensure integrity
 
     def filter_by_formula(self, formula):
-        
+
         for row in self._data:
             if pollutants_dict.get_formula(row.pollutant) == formula:
                 yield row
@@ -101,4 +101,3 @@ class DataManager(object):
 
 #         return "%(region)s, %(station)s, %(pollutant)s, " \
 #                     "%(timestamp)s, %(quantity)s" % ctx
-
