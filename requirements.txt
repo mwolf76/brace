@@ -1,7 +1,7 @@
 # This file lists requirements for the brace tool. These requirements
 # can be automatically installed issuing the following command:
-# 
+#
 # $ pip install -r requirements.txt
 
 BeautifulSoup==3.2.0
-
+ordereddict==1.1

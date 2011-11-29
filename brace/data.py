@@ -14,6 +14,13 @@ import time
 from brace.ontology import regions_dict
 from brace.ontology import pollutants_dict
 
+# Ordered dict
+try:
+    from collections import OrderedDict
+
+except ImportError, ioe:
+    from ordereddict import OrderedDict
+
 # named tuple for lighteweight data storage
 DataRow = collections.namedtuple('DataRow',
     'region, station, pollutant, timestamp, quantity')
@@ -24,7 +31,7 @@ class DataManager(object):
 
     def __init__(self):
         self._data = []
-        self._stations = {}
+        self._stations = OrderedDict()
 
     def append(self, *args, **kwargs):
 
