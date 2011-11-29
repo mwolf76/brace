@@ -258,6 +258,56 @@ class DsplDumper(object):
         self._out = out
         self._tmpdir = "zip/"
 
+    def _yield(self, formula):
+        """Yields aggregate data for this output plugin.
+        """
+        fk = pollutants_dict.get_pk(formula)
+        
+        curr_reg = None
+        curr_stat = None
+        curr_day = None
+        res = 0.0  # aggregate measurement (max)
+        
+        for row in self._data_mgr.data:
+            if row.pollutant == fk:
+                (region, station, pollutant, timestamp, quantity) = row
+
+                # if dealing with another region, yield result and reset
+                if (curr_reg is not None and curr_reg != region):
+                    yield (region, station, pollutant, day, res)
+                    curr_reg = None
+                    curr_stat = None
+                    curr_day = None
+                    res = 0.0
+                curr_reg = region
+
+                # if dealing with another station, yield result and reset
+                if (curr_stat is not None and curr_stat != stat):
+                    yield (region, station, pollutant, day, res)
+                    curr_reg = None
+                    curr_stat = None
+                    curr_day = None
+                    res = 0.0
+                curr_stat = station
+
+                day = timestamp.date()  # discard time info
+                # if dealing with another date, yield result and reset
+                if (curr_day is not None and curr_day != day):
+                    yield (region, station, pollutant, day, res)
+                    curr_reg = None
+                    curr_stat = None
+                    curr_day = None
+                    res = 0.0
+                curr_day = day
+
+                # update aggregate measurement
+                res = max(res, quantity)
+            
+        # any missing data?
+        if region is not None:
+            yield (region, station, pollutant, day, res)
+            
+
     def __call__(self):
         
         if '.' not in self._out:
@@ -311,15 +361,16 @@ class DsplDumper(object):
             fullpath = os.path.join(self._tmpdir, "%s.csv" % formula)
 
             polcsv = open(fullpath, "wt")
-            polcsv.write("region, station, timestamp, quantity\n")
+            polcsv.write("region, station, day, quantity\n")
 
-            for row in self._data_mgr.filter_by_formula(formula):
+            # generated aggregate data
+            for (region, station, day, quantity) in self._yield(formula):
 
-                entry = u"%(region)s, %(station)s, %(timestamp)s, %(quantity)s\n" % {
-                    'region': row.region,
-                    'station': row.station,
-                    'timestamp': time.strftime("%Y-%m-%d %H:%M", row.timestamp),
-                    'quantity': row.quantity,
+                entry = u"%(region)s, %(station)s, %(day)s, %(quantity)s\n" % {
+                    'region': region,
+                    'station': station,
+                    'day': time.strftime("%Y-%m-%d", day),
+                    'quantity': quantity,
                 }
                 polcsv.write(entry)
 

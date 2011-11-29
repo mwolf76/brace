@@ -144,3 +144,75 @@ class ItalianRegionsDictionary(object):
 regions_dict = ItalianRegionsDictionary()
 
 
+class StationsDictionary(object):
+    """Provides loookup services for italian regions. All of the get_xxx
+    methods below take a generic identifier. The given identifier is
+    used to perform look-up using key and name in this order.
+    """
+
+    # List of Italian regions (region_code, alphaid, name)
+    # TODO add coordinates?
+    stations = [
+        (13, u"Chieti"),
+        (13, u"PE - TEATRO D'ANNUNZIO", "Pescara - Teatro D'Annunzio"),
+        
+        # (21, u"Alto Adige", 46.5, 11.35),
+        # (17, u"Basilicata", 40.639166, 15.805278),
+        # (18, u"Calabria", 38.8918, 16.5995),
+        # (15, u"Campania", 40.833333, 14.25),
+        # (8, u"Emilia Romagna", 44.510556, 10.956944),
+        # (6, u"Friuli Venezia Giulia", 45.636111, 13.804167),
+        # (12, u"Lazio", 41.893055, 12.482778),
+        # (7, u"Liguria", 44.455556, 8.734722),
+        # (3, u"Lombardia", 45.585555, 9.930278),
+        # (11, u"Marche", 43.616945, 13.516667),
+        # (14, u"Molise", 41.566667, 14.666667),
+        # (1, u"Piemonte", 45.066667, 7.7),
+        # (16, u"Puglia", 41.125278, 16.866667),
+        # (20, u"Sardegna", 39.216667, 9.116667),
+        # (19, u"Sicilia", 38.115556, 13.361389),
+        # (9, u"Toscana", 43.771389, 11.254167),
+        # (4, u"Trentino", 46.066667, 11.116667),
+        # (10, u"Umbria", 43.1121, 12.3888),
+        # (2, u"Valle d'Aosta", 45.737222, 7.320556),
+        # (5, u"Veneto", 45.439722, 12.331945),
+    ]
+
+    # case insensitive find
+    def _find_tuple(self, ident):
+
+        if isinstance(ident, unicode) or \
+                isinstance(ident, str):
+            ident = ident.lower()
+
+        for (pk, name, latitude, longitude) in self.regions:
+            if ident in (pk, name.lower()):
+                return (pk, name, latitude, longitude)
+
+        raise KeyError(
+            "'%s' is not an italian region" % ident)
+
+    def get_pk(self, ident):
+
+        (pk, _, _, _) = self._find_tuple(ident)
+        return pk
+
+    def get_name(self, ident):
+
+        (_, name, _, _) = self._find_tuple(ident)
+        return name
+
+    def get_latitude(self, ident):
+        (_, _, latitude, _) = self._find_tuple(ident)
+        return latitude
+
+    def get_longitude(self, ident):
+        (_, _, _, longitude) = self._find_tuple(ident)
+        return longitude
+
+    def all(self):
+        return self.regions
+
+stations_dict = StationsDictionary()
+
+

@@ -16,7 +16,7 @@ from brace.ontology import pollutants_dict
 
 # named tuple for lighteweight data storage
 DataRow = collections.namedtuple('DataRow', 
-                 'region, station, pollutant, timestamp, quantity')
+    'region, station, pollutant, timestamp, quantity')
 
 class DataManager(object):
     """DataManager class
@@ -56,7 +56,7 @@ class DataManager(object):
                 raise ValueError(
                     "Unexpected named parameter: '%s'" % k)
             
-        # normalized, clened up data
+        # normalized, cleaned up data
         row = DataRow(**cleaned)
         self._data.append(row)
 
@@ -71,6 +71,10 @@ class DataManager(object):
         for row in self._data:
             if pollutants_dict.get_formula(row.pollutant) == formula:
                 yield row
+
+    @property
+    def data(self):
+        return iter(self._data)
 
     @property
     def stations(self):

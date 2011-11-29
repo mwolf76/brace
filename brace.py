@@ -90,6 +90,7 @@ if __name__ == "__main__":
                     year, pollutant_formula, pollutant_name, region_name)
 
                 archive = query(region_code, pollutant_code, year)
+                seen = set() # tmp
                 try:
                     zf = zipfile.ZipFile(archive)
                     for entry in zf.namelist():
@@ -116,6 +117,9 @@ if __name__ == "__main__":
                             data_mgr.append(**data)
 
                             logger.debug("-- " + unicode(row))
+                            if row[0] not in seen:
+                                print row[0]
+                                seen.add(row[0])
 
                             i += 1; total_rows += 1
 
