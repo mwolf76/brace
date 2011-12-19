@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Network I/O services
 """
+import time
+
 # Logging support
 import logging
 logger = logging.getLogger("brace")
@@ -106,13 +108,13 @@ def query(region, pollutant, year):
     link = download(genfile)
     if link is None:
         raise IOError("Could not fetch '%s'." % genfile)
-    
+
     soup = BeautifulSoup(link)
 
     location = \
         soup.find('script').contents[0].split('"')[1].\
         replace("../download/", "")
-    
+
     link.close()
 
     archive = download(
@@ -124,4 +126,3 @@ def query(region, pollutant, year):
         raise IOError("Could not fetch '%s'." % genfile)
 
     return archive
-

@@ -17,7 +17,7 @@ from brace.ontology import pollutants_dict
 from brace.ontology import regions_dict
 
 DEFAULT_FROM_YEAR = 2002
-DEFAULT_TO_YEAR = 2009
+DEFAULT_TO_YEAR = 2010
 
 usage = """
 brace.py - a tool for public data knowledge sharing.
@@ -44,7 +44,7 @@ options:
 
   --to=<to_year>, determines the ending year for the analysis
   (e.g. 2003). If not specified the latest year for which data is
-  available is picked. (currently this is 2009).
+  available is picked. (currently this is 2010).
 
   --region=<region>, (case-insensitive) determines which localized
   data set is to be processed. If specified more than once, output is
@@ -60,7 +60,7 @@ options:
   produced for all of the given pollutants. If no pollutant is given,
   all of them will be taken into account.
 
-  Here follows the complete list of known pollutants: 
+  Here follows the complete list of known pollutants:
 
   %(pollutants)s
 
@@ -77,7 +77,7 @@ arguments:
 
   filename, the filename to write the output to.
 """ % {
-    'regions': "\n  ".join ([regions_dict.get_name(r[0]) 
+    'regions': "\n  ".join ([regions_dict.get_name(r[0])
                              for r in regions_dict.all()]),
 
     'pollutants': "\n  ".join ([ "%(formula)s (%(name)s)" % {
