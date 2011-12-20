@@ -2,4 +2,5 @@
 """Errors and exceptions
 """
 
-
+class OntologyException(Exception):
+    pass
