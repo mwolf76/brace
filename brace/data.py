@@ -12,7 +12,10 @@ import collections
 import time
 
 from brace.ontology import regions_dict
+from brace.ontology import stations_dict
 from brace.ontology import pollutants_dict
+
+from brace.exceptions import OntologyException
 
 # Ordered dict
 try:
@@ -31,7 +34,6 @@ class DataManager(object):
 
     def __init__(self):
         self._data = []
-        self._stations = OrderedDict()
 
     def append(self, *args, **kwargs):
 
@@ -68,10 +70,14 @@ class DataManager(object):
         self._data.append(row)
 
         station, region = cleaned["station"], cleaned["region"]  # aliases
-        if not station in self._stations:
-            self._stations[station] = region
-        else:
-            assert self._stations[station] == region  # ensure integrity
+
+        if station not in stations_dict:
+            raise OntologyException("Station '%s' not found in the ontology." %
+                                    station)
+
+        if region not in regions_dict:
+            raise OntologyException("Station '%s' not found in the ontology." %
+                                    station)
 
     def filter_by_formula(self, formula):
 
@@ -82,29 +88,3 @@ class DataManager(object):
     @property
     def data(self):
         return iter(self._data)
-
-    @property
-    def stations(self):
-        return self._stations.iteritems()
-
-# class DataRow(object):
-#     """An abstraction on raw data.
-#     """
-
-#     def __init__(self, *args, **kwargs):
-
-
-#     def __repr__(self):
-#         """csv representation of a single data row.
-#         """
-#         ctx = {
-#             'region': self.region,
-#             'station': self.station,
-#             'pollutant': pollutants_dict.get_formula(self._data.pollutant) + \
-#                 " (" + pollutants_dict.get_name(self._data.pollutant) + ")",
-#             'timestamp': time.strftime("%Y-%m-%d %H:%M", self.timestamp),
-#             'quantity': self.quantity,
-#             }
-
-#         return "%(region)s, %(station)s, %(pollutant)s, " \
-#                     "%(timestamp)s, %(quantity)s" % ctx
