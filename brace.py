@@ -32,18 +32,28 @@ start = time()
 import zipfile
 import shutil
 
-# custom modules
+# opts handling
 from brace.opts import opts_mgr
+
+# ontology
 from brace.ontology import pollutants_dict
 from brace.ontology import regions_dict
+from brace.ontology import stations_dict
+
+# core modules
 from brace.network import download, query
 from brace.csvio import UnicodeReader
 from brace.data import DataRow, DataManager
+
+# output module
 from brace.out.dspl import DsplDumper
 
-# logging
+# logging, (set BRACE_DEBUG from the calling env to activate extra logging)
 import logging
-FORMAT = '%(asctime)-15s %(message)s'
+DEBUG_MODE = os.environ.get("BRACE_DEBUG", False) and True  # a boolean cast
+FORMAT = not DEBUG_MODE and '-- %(message)s' or \
+         "%(asctime)-15s [%(module)s.%(funcName)s:%(lineno)d] - %(message)s"
+
 logging.basicConfig(format=FORMAT)
 
 logger = logging.getLogger("brace")
@@ -90,8 +100,24 @@ if __name__ == "__main__":
                     "region '%s'", year, pollutant_formula, pollutant_name,
                     region_name)
 
-                archive = query(region_code, pollutant_code, year)
-                # seen = set() # tmp
+                if not opts_mgr.local:
+                    # fetch remote archive
+                    archive = query(region_code, pollutant_code, year)
+                else:
+                    # use local archive
+                    backup_name = '%s_%s_%s.zip' % (
+                        region_code, pollutant_code, year)
+                    archive = open(backup_name, "rt")
+
+                # copy it to local resource for later use
+                if (opts_mgr.keep):
+                    backup_name = '%s_%s_%s.zip' % (
+                        region_code, pollutant_code, year)
+
+                    bf = open(backup_name, "wt")
+                    shutil.copyfileobj(archive, bf)
+                    bf.close()
+
                 try:
                     zf = zipfile.ZipFile(archive)
                     for entry in zf.namelist():
@@ -116,33 +142,36 @@ if __name__ == "__main__":
                                 }
 
                             data_mgr.append(**data)
-
                             logger.debug("-- " + unicode(row))
-                            # if row[0] not in seen:
-                            #     print row[0]
-                            #     seen.add(row[0])
 
                             i += 1; total_rows += 1
 
                         logger.info("Processed %d rows", i)
 
-                except Exception, e:  # TODO which expception
-                    logger.warning("Data unavailable.")
+                except Exception, e:
+                    logger.warning("Data unavailable [reason: %s]." % str(e))
 
-                archive.close()
+                archive.close()  # temp file will be removed automatically
 
         # disk cleanup
-        if (not opts_mgr.keep):
-            if (os.path.exists(TMP_DIR)):
-                shutil.rmtree(TMP_DIR, True)  # TODO add something for errors
+        if (os.path.exists(TMP_DIR)):
+            shutil.rmtree(TMP_DIR, True)  # TODO add something for errors
 
     # Phase 2. Dump output
     logger.info("Dumping output files...")
     dumper = DsplDumper(data_mgr, "out.zip" )
-    dumper()
+
+    # try:
+    #     dumper()
+    #     logger.info("Execution completed successfully.")
+
+    # except Exception, e:
+    #     logger.warning("An error has occurred during dumping [%s].\n"
+    #                    "Output may be incomplete or missing.", str(e))
+    dumper()  # avoid exception suppresion for development (pdb)
 
     # Phase 3. Show run stats
     logger.info(
-        "Done. Processed %d rows in %s", total_rows, "%d:%02d:%02d.%03d" % \
-            reduce(lambda ll,b : divmod(ll[0],b) + ll[1:],
-                   [(time() - start, ), 1, 60, 60]))
+        "Processed %d rows in %s", total_rows, "%d:%02d:%02d.%03d" % \
+        reduce(lambda ll,b : divmod(ll[0],b) + ll[1:],
+               [(time() - start, ), 1, 60, 60]))
