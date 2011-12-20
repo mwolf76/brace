@@ -94,6 +94,7 @@ class OptionsManager(object):
     long_options = [
         "help",
         "keep",
+        "local",
         "verbosity=",
         "from=",
         "to=",
@@ -107,6 +108,7 @@ class OptionsManager(object):
         self.to_year = DEFAULT_TO_YEAR
         self.verbosity = 1  # Normal
         self.keep = False
+        self.local = False
 
         self.regions = []
         self.pollutants = []
@@ -185,6 +187,16 @@ class OptionsManager(object):
 
             elif o == "--keep":
                 self.keep = True
+                if self.local:
+                    raise getopt.GetoptError(
+                        "--local and --keep are not supported together")
+
+            elif o == "--local":
+                self.local = True
+                if self.keep:
+                    raise getopt.GetoptError(
+                        "--local and --keep are not supported together")
+
 
             elif o == "--help":
                 print usage
