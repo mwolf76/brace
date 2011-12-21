@@ -17,13 +17,6 @@ from brace.ontology import pollutants_dict
 
 from brace.exceptions import OntologyException
 
-# Ordered dict
-try:
-    from collections import OrderedDict
-
-except ImportError, ioe:
-    from ordereddict import OrderedDict
-
 # named tuple for lighteweight data storage
 DataRow = collections.namedtuple('DataRow',
     'region, station, pollutant, timestamp, quantity')

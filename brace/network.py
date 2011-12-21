@@ -83,14 +83,13 @@ def query(region, pollutant, year):
 
     pollutant_code = pollutants_dict.get_pk(pollutant)
     pollutant_formula = pollutants_dict.get_formula(pollutant)
-    pollutant_name = pollutants_dict.get_name(pollutant)
-
-    name = '%sdownload/%s_%s_%s.zip' % (
-        URL_PREFIX,
-        region_name.upper(),
-        pollutant_formula.upper(),
-        year,
-    )
+    # pollutant_name = pollutants_dict.get_name(pollutant)
+    # name = '%sdownload/%s_%s_%s.zip' % (
+    #     URL_PREFIX,
+    #     region_name.upper(),
+    #     pollutant_formula.upper(),
+    #     year,
+    # )
 
     query = urllib.urlencode({
             'p_comp': pollutant_code,

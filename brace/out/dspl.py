@@ -24,7 +24,8 @@ from brace.ontology import stations_dict
 import zipfile
 import shutil
 
-# TODO: following code is *very* raw
+# TODO: this code is *very* raw, at some point in time this should use
+# some decent templating engine (e.g. Genshi)
 def build_dspl_pollutant_concept_xml_max(pollutant):
     """Builds the xml node for a specific pollutant
     """
@@ -32,10 +33,10 @@ def build_dspl_pollutant_concept_xml_max(pollutant):
 <concept id="%(id)s_max">
     <info>
         <name>
-            <value>%(name)s</value>
+            <value>%(name)s (max)</value>
         </name>
     </info>
-    <type ref="float"/>
+    <type ref="float" />
 </concept>
 """ % {
         'id': pollutants_dict.get_formula(pollutant),
@@ -50,10 +51,10 @@ def build_dspl_pollutant_concept_xml_avg(pollutant):
 <concept id="%(id)s_avg">
     <info>
         <name>
-            <value>%(name)s</value>
+            <value>%(name)s (avg)</value>
         </name>
     </info>
-    <type ref="float"/>
+    <type ref="float" />
 </concept>
 """ % {
         'id': pollutants_dict.get_formula(pollutant),
@@ -68,20 +69,24 @@ def build_dspl_regions_concept_xml():
     return """<!-- Concept for regions (geo). -->
 <concept id="region" extends="geo:location">
       <info>
-        <name><value>Regions</value></name>
+        <name>
+            <value>Regions</value>
+        </name>
         <description>
-          <value>Italian regions</value>
+            <value>Italian regions</value>
         </description>
       </info>
       <type ref="string"/>
       <property id="name">
-        <info>
-          <name><value>Name</value></name>
-          <description>
-            <value>The official name of the region</value>
-          </description>
-        </info>
-        <type ref="string" />
+          <info>
+              <name>
+                  <value>Name</value>
+              </name>
+              <description>
+                  <value>The official name of the region</value>
+              </description>
+          </info>
+          <type ref="string" />
       </property>
       <table ref="regions_table" />
 </concept>
@@ -96,10 +101,10 @@ def build_dspl_stations_concept_xml():
 <concept id="station" extends="geo:location">
       <info>
           <name>
-              <value>Measurement station</value>
+              <value>Station</value>
           </name>
           <description>
-              <value>Measurement station</value>
+              <value>Pollution sampling station</value>
           </description>
       </info>
       <property concept="region" isParent="true" />
@@ -117,7 +122,6 @@ def build_dspl_regions_table_xml():
     <column id="region" type="string"/>
     <column id="latitude" type="float"/>
     <column id="longitude" type="float"/>
-
     <data>
         <file format="csv" encoding="utf-8">regions.csv</file>
     </data>
@@ -135,7 +139,6 @@ def build_dspl_stations_table_xml():
     <column id="region" type="string" />
     <column id="latitude" type="float"/>
     <column id="longitude" type="float"/>
-
     <data>
         <file format="csv" encoding="utf-8">stations.csv</file>
     </data>
@@ -317,7 +320,7 @@ def build_dspl_xml():
 
 
 class DsplDumper(object):
-    """
+    """(missing docs)
     """
 
     def __init__(self, data_mgr, out):
@@ -330,9 +333,14 @@ class DsplDumper(object):
         """
         fk = pollutants_dict.get_pk(formula)
 
+        # initialization
         curr_reg = None
         curr_stat = None
         curr_day = None
+
+        max_ = 0.0   # (aggregate max)
+        cum_ = 0.0   # (aggregate cum sum)
+        samples = 0  # (number of samples, needed for avg)
 
         for row in self._data_mgr.data:
             if row.pollutant == fk:
@@ -358,11 +366,6 @@ class DsplDumper(object):
                         avg_ = cum_ / samples
                         yield (region, station, day, max_, avg_)
 
-                    # initialization occurs here
-                    max_ = 0.0   # (aggregate max)
-                    cum_ = 0.0   # (aggregate cum sum)
-                    samples = 0  # (number of samples, needed for avg)
-
                 # update
                 curr_reg = region
                 curr_stat = station
@@ -378,7 +381,7 @@ class DsplDumper(object):
                (station != last_station) or \
                (day != last_day):
 
-            avg_ = cum / samples
+            avg_ = cum_ / samples
             yield (region, station, day, max_, avg_)
 
     def __call__(self):
