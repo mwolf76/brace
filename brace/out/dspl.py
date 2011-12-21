@@ -9,6 +9,9 @@ import os
 import time
 import datetime
 
+# Temporary files support
+import tempfile
+
 # Logging support
 import logging
 logger = logging.getLogger("brace")
@@ -26,40 +29,25 @@ import shutil
 
 # TODO: this code is *very* raw, at some point in time this should use
 # some decent templating engine (e.g. Genshi)
-def build_dspl_pollutant_concept_xml_max(pollutant):
-    """Builds the xml node for a specific pollutant
-    """
-    return """<!-- Concept for %(id)s %(name)s (max). -->
-<concept id="%(id)s_max">
-    <info>
-        <name>
-            <value>%(name)s (max)</value>
-        </name>
-    </info>
-    <type ref="float" />
-</concept>
-""" % {
-        'id': pollutants_dict.get_formula(pollutant),
-        'name': pollutants_dict.get_name(pollutant),
-}
 
 
-def build_dspl_pollutant_concept_xml_avg(pollutant):
-    """Builds the xml node for a specific pollutant
+# -- concepts
+def build_dspl_aggregates_concept_xml():
     """
-    return """<!-- Concept for %(id)s %(name)s (avg). -->
-<concept id="%(id)s_avg">
-    <info>
-        <name>
-            <value>%(name)s (avg)</value>
-        </name>
-    </info>
-    <type ref="float" />
+    """
+    return """<concept id="aggregate" extends="entity:entity">
+  <info>
+    <name>
+      <value>Aggregation</value>
+    </name>
+    <description>
+      <value>Max or Avg</value>
+    </description>
+  </info>
+  <type ref="string"/>
+  <table ref="aggregates_table"/>
 </concept>
-""" % {
-        'id': pollutants_dict.get_formula(pollutant),
-        'name': pollutants_dict.get_name(pollutant),
-}
+"""
 
 
 def build_dspl_regions_concept_xml():
@@ -113,6 +101,39 @@ def build_dspl_stations_concept_xml():
 """
 
 
+def build_dspl_pollutant_concept_xml(pollutant):
+    """Builds the xml node for a specific pollutant
+    """
+    return """<!-- Concept for %(id)s %(name)s. -->
+<concept id="%(id)s">
+    <info>
+        <name>
+            <value>%(name)s</value>
+        </name>
+    </info>
+    <type ref="float" />
+</concept>
+""" % {
+        'id': pollutants_dict.get_formula(pollutant),
+        'name': pollutants_dict.get_name(pollutant),
+}
+
+
+# -- tables
+def build_dspl_aggregates_table_xml():
+    """
+    """
+    return """<!-- Table for aggregate types. -->
+<table id="aggregates_table">
+    <column id="aggregate" type="string"/>
+    <column id="description" type="string"/>
+    <data>
+        <file format="csv" encoding="utf-8">aggregates.csv</file>
+    </data>
+</table>
+"""
+
+
 def build_dspl_regions_table_xml():
     """ Builds the dspl italian regions table
     """
@@ -146,35 +167,18 @@ def build_dspl_stations_table_xml():
 """
 
 
-def build_dspl_pollutant_slice_table_xml_max(pollutant):
-    """Builds the dspl pollutant slice table for a given pollutant (max).
+def build_dspl_pollutant_slice_table_xml(pollutant):
+    """Builds the dspl pollutant slice table for a given pollutant.
     """
 
     return """<!-- Slice table for %(formula)s (%(name)s). -->
-<table id="%(formula)s_slice_table_max">
-    <column id="region" type="string"/>
-    <column id="station" type="string"/>
-    <column id="day" type="date" format="yyyy-MM-dd"/>
-    <column id="%(formula)s_max" type="float"/>
-    <data><file format="csv" encoding="utf-8">%(formula)s_max.csv</file></data>
-</table>
-""" % {
-        'formula': pollutants_dict.get_formula(pollutant),
-        'name': pollutants_dict.get_name(pollutant),
-}
-
-
-def build_dspl_pollutant_slice_table_xml_avg(pollutant):
-    """Builds the dspl pollutant slice table for a given pollutant (avg).
-    """
-
-    return """<!-- Slice table for %(formula)s (%(name)s). -->
-<table id="%(formula)s_slice_table_avg">
-    <column id="region" type="string"/>
-    <column id="station" type="string"/>
-    <column id="day" type="date" format="yyyy-MM-dd"/>
-    <column id="%(formula)s_avg" type="float"/>
-    <data><file format="csv" encoding="utf-8">%(formula)s_avg.csv</file></data>
+<table id="%(formula)s_slice_table">
+    <column id="region" type="string" />
+    <column id="station" type="string" />
+    <column id="aggregate" type="string" />
+    <column id="day" type="date" format="yyyy-MM-dd" />
+    <column id="%(formula)s" type="float"/>
+    <data><file format="csv" encoding="utf-8">%(formula)s.csv</file></data>
 </table>
 """ % {
         'formula': pollutants_dict.get_formula(pollutant),
@@ -187,14 +191,13 @@ def build_dspl_tables_xml():
     """
 
     return \
+        build_dspl_aggregates_table_xml() + \
+        "\n" + \
         build_dspl_regions_table_xml() + \
         "\n" + \
         build_dspl_stations_table_xml() + \
         "\n" + \
-        "\n".join(map(build_dspl_pollutant_slice_table_xml_max,
-                      opts_mgr.pollutants)) + \
-        "\n" + \
-        "\n".join(map(build_dspl_pollutant_slice_table_xml_avg,
+        "\n".join(map(build_dspl_pollutant_slice_table_xml,
                       opts_mgr.pollutants))
 
 
@@ -203,42 +206,27 @@ def build_dspl_concepts_xml():
     """
 
     return \
-        "\n".join(map(build_dspl_pollutant_concept_xml_max,
-                      opts_mgr.pollutants)) + \
         "\n" + \
-        "\n".join(map(build_dspl_pollutant_concept_xml_avg,
-                      opts_mgr.pollutants)) + \
+        build_dspl_aggregates_concept_xml() + \
         "\n" + \
         build_dspl_regions_concept_xml() + \
         "\n" + \
-        build_dspl_stations_concept_xml()
+        build_dspl_stations_concept_xml() + \
+        "\n".join(map(build_dspl_pollutant_concept_xml,
+                      opts_mgr.pollutants))
 
-def build_dspl_pollutant_slice_xml_max(pollutant):
+
+def build_dspl_pollutant_slice_xml(pollutant):
     """
     """
     return """<!-- Slice for %(formula)s (%(name)s). (max) -->
-<slice id="%(formula)s_max_slice">
-    <dimension concept="region"/>
-    <dimension concept="station"/>
-    <dimension concept="time:day"/>
-    <metric concept="%(formula)s_max"/>
-    <table ref="%(formula)s_slice_table_max"/>
-</slice>
-""" % {
-        'formula': pollutants_dict.get_formula(pollutant),
-        'name': pollutants_dict.get_name(pollutant),
-}
-
-def build_dspl_pollutant_slice_xml_avg(pollutant):
-    """
-    """
-    return """<!-- Slice for %(formula)s (%(name)s). (avg) -->
-<slice id="%(formula)s_avg_slice">
-    <dimension concept="region"/>
-    <dimension concept="station"/>
-    <dimension concept="time:day"/>
-    <metric concept="%(formula)s_avg"/>
-    <table ref="%(formula)s_slice_table_avg"/>
+<slice id="%(formula)s_slice">
+    <dimension concept="region" />
+    <dimension concept="station" />
+    <dimension concept="aggregate" />
+    <dimension concept="time:day" />
+    <metric concept="%(formula)s" />
+    <table ref="%(formula)s_slice_table"/>
 </slice>
 """ % {
         'formula': pollutants_dict.get_formula(pollutant),
@@ -249,9 +237,7 @@ def build_dspl_slices_xml():
     """Builds the dspl slices for pollutants.
     """
     return \
-        "\n".join(map(build_dspl_pollutant_slice_xml_max,
-                      opts_mgr.pollutants)) + \
-        "\n".join(map(build_dspl_pollutant_slice_xml_avg,
+        "\n".join(map(build_dspl_pollutant_slice_xml,
                       opts_mgr.pollutants))
 
 def build_dspl_xml():
@@ -403,6 +389,20 @@ class DsplDumper(object):
         xml.close()
         azip.write(fullpath)
 
+        # write aggregates csv file
+        fullpath = os.path.join(self._tmpdir, "aggregates.csv")
+        aggrcsv = open(fullpath, "wt")
+        aggrcsv.write("aggregate, description\n")
+        for (id, desc) in [ ( "max", "Maximum daily concentration" ),
+                            ( "avg", "Average daily concentration" ), ]:
+            entry = u"%(id)s, %(description)s\n" % {
+                'id': id,
+                'description': desc,
+            }
+            aggrcsv.write(entry)
+        aggrcsv.close()
+        azip.write(fullpath)
+
         # write regions csv file
         fullpath = os.path.join(self._tmpdir, "regions.csv")
         regcsv = open(fullpath, "wt")
@@ -433,50 +433,59 @@ class DsplDumper(object):
         azip.write(fullpath)
 
         # write pollutants csv files for slice tables
+        # Remark: as csv file *must* be sorted according to dimensions
+        # it is necessary to build two separate temp files and then
+        # join them together when every row has been processed. :-/
         for pollutant in opts_mgr.pollutants:
             formula = pollutants_dict.get_formula(pollutant)
 
-            fullpath_max = os.path.join(self._tmpdir, "%(formula)s_max.csv" % {
-                'formula': formula
-            })
-            polcsv_max = open(fullpath_max, "wt")
-            polcsv_max.write("region, station, day, %(formula)s_max\n" % {
-                'formula': formula,
-            })
-
-            fullpath_avg = os.path.join(self._tmpdir, "%(formula)s_avg.csv" % {
-                'formula': formula
-            })
-            polcsv_avg = open(fullpath_avg, "wt")
-            polcsv_avg.write("region, station, day, %(formula)s_avg\n" % {
-                'formula': formula,
-            })
+            max_file = tempfile.TemporaryFile()
+            avg_file = tempfile.TemporaryFile()
 
             # generate aggregate data
             for (region, station, day, max_, avg_) in self._yield(formula):
 
-                entry_max = u"%(region)s, %(station)s, %(day)s, %(max)s\n" % {
+                entry = u"%(region)s, %(station)s, max, %(day)s, %(qty)s\n" % {
                     'region': region,
                     'station': station,
                     'day': time.strftime("%Y-%m-%d", day +(0, ) * 6),
-                    'max': max_,
+                    'qty': max_,
                 }
-                polcsv_max.write(entry_max)
+                max_file.write(entry)
 
-                entry_avg = u"%(region)s, %(station)s, %(day)s, %(avg)s\n" % {
+                entry = u"%(region)s, %(station)s, avg, %(day)s, %(qty)s\n" % {
                     'region': region,
                     'station': station,
                     'day': time.strftime("%Y-%m-%d", day +(0, ) * 6),
-                    'avg': avg_,
+                    'qty': avg_,
                 }
-                polcsv_avg.write(entry_avg)
+                avg_file.write(entry)
+
+            avg_file.seek(0)
 
 
-            polcsv_max.close()
-            azip.write(fullpath_max)
+            fullpath = os.path.join(self._tmpdir, "%(formula)s.csv" % {
+                'formula': formula
+            })
+            polcsv = open(fullpath, "wt")
+            polcsv.write("region, station, aggregate, day, %(formula)s\n" % {
+                'formula': formula,
+            })
 
-            polcsv_avg.close()
-            azip.write(fullpath_avg)
+
+            # concatenate max_file and avg_file
+            max_file.seek(0)
+            for l in max_file:
+                polcsv.write(l)
+            max_file.close()  # get rid of temp file
+
+            avg_file.seek(0)
+            for l in avg_file:
+                polcsv.write(l)
+            avg_file.close()  # get rid of temp file
+
+            polcsv.close()
+            azip.write(fullpath)
 
         # disk cleanup
         if (os.path.exists(self._tmpdir)):
