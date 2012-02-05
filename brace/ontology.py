@@ -24,8 +24,8 @@ class PollutantsDictionary(object):
         (38, "NO", _(u"Nitrogen Oxide")),
         (7, "O3", _(u"Ozone")),
         (10, "CO", _(u"Carbon Oxide")),
-        (5, "PM10", _(u"Particulates < 10 μm")),
-        (6001, "PM25", _(u"Particulates < 2.5 μm")),
+        (5, "PM10", _(u"Particulates < 10 micrometers")),
+        (6001, "PM25", _(u"Particulates < 2.5 micrometers")),
         (4, "PTS", _(u"Particulates")),
         (20, "C6H6", _(u"Benzene")),
     ]

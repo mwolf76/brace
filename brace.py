@@ -95,16 +95,21 @@ if __name__ == "__main__":
 
             for year in range(opts_mgr.from_year,
                               1 + opts_mgr.to_year):
-                logger.info(
-                    "Trying to fetch data for year %d, pollutant '%s' (%s), "
-                    "region '%s'", year, pollutant_formula, pollutant_name,
-                    region_name)
 
                 if not opts_mgr.local:
                     # fetch remote archive
+                    logger.info(
+                        "Trying to fetch data for year %d, pollutant '%s' (%s), "
+                        "region '%s'", year, pollutant_formula, pollutant_name,
+                        region_name)
                     archive = query(region_code, pollutant_code, year)
+
                 else:
                     # use local archive
+                    logger.info(
+                        "Using local data for year %d, pollutant '%s' (%s), "
+                        "region '%s'", year, pollutant_formula, pollutant_name,
+                        region_name)
                     backup_name = '%s_%s_%s.zip' % (
                         region_code, pollutant_code, year)
                     archive = open(backup_name, "rt")
