@@ -13,7 +13,7 @@
 # ... more ...
 
 __author__ = "Marco Pensallorto"
-__copyright__ = "Copyright 2011, The Brace Project"
+__copyright__ = "Copyright 2011-2012, The Brace Project"
 __license__ = "GPL"
 __version__ = "0.0.1"
 __maintainer__ = "Marco Pensallorto"
@@ -137,6 +137,8 @@ if __name__ == "__main__":
                         # it needs to be recoded to UTF-8.
                         for row in UnicodeReader(open(fullpath),
                                                  encoding="iso-8859-1"):
+
+                            assert row[1] == pollutant_formula
 
                             data = {
                                 'region': region_name,

@@ -578,7 +578,9 @@ class DsplDumper(object):
         # generate aggregated data
         for (region, station, day, pollutant, max_, avg_) in self._yield():
 
-            entry = u"%(region)s, %(station)s, max, %(formula)s, %(day)s, %(qty)s\n" % {
+            formula = pollutants_dict.get_formula(pollutant)
+
+            entry = u"%(region)s, %(station)s, max, %(formula)s, %(day)s, %(qty).3f\n" % {
                 'region': region,
                 'station': station,
                 'formula': formula,
@@ -587,7 +589,7 @@ class DsplDumper(object):
             }
             max_file.write(entry)
 
-            entry = u"%(region)s, %(station)s, avg, %(formula)s, %(day)s, %(qty)s\n" % {
+            entry = u"%(region)s, %(station)s, avg, %(formula)s, %(day)s, %(qty).3f\n" % {
                 'region': region,
                 'station': station,
                 'formula': formula,

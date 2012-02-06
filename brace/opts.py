@@ -24,7 +24,9 @@ brace.py - a tool for public data knowledge sharing.
 
 usage:
 
-    brace.py [ --from=<from_year> ]
+    brace.py [ --local ]
+             [ --keep ]
+             [ --from=<from_year> ]
              [ --to=<to_year> ]
              [ --region=<region_1>  [--region=<region_2> ... ] ]
              [ --pollutant=<formula_1> [--pollutant=<formula_2> ... ] ]
@@ -33,6 +35,12 @@ usage:
              filename
 
 options:
+
+  --local, performs processing of local data instead of fetching
+  archives from the ISPRA web site.
+
+  --keep, retains data fetched from the ISPRA web site to perform
+  further processing at a later time (see --local).
 
   --year=<year>, determines the starting and ending year for the
   analysis (e.g. 2003). This is equivalent to --from=<year>
